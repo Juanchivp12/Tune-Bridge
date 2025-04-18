@@ -1,6 +1,6 @@
 # 🎵 Tune Bridge (WIP)
 
-**Tune Bridge** is a work-in-progress tool that lets you extract track data from your Spotify playlists — the first step toward building a playlist converter between Spotify and Apple Music.
+**Tune Bridge** is a work-in-progress tool that lets you convert a spotify playlist into an apple music playlist and viceversa
 
 ---
 
