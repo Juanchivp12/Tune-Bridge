@@ -41,12 +41,6 @@ def get_artists_albums(token):
     response = requests.get(url, headers=headers, params=params)
     return response.json()
 
-
-albums = get_artists_albums(access_token)
-
-for i, album in enumerate(albums['items'], start=1):
-    print(f'{i}. {album["name"]}, Released {album["release_date"]}')
-
 def get_playlist_id():
     playlist_url = input('Paste the Spotify playlist URL or URI: ')
 
@@ -72,6 +66,10 @@ def get_playlist_items(token):
 
 # Variable holding the access token
 access_token = get_token()['access_token']
+
+albums = get_artists_albums(access_token)
+for i, album in enumerate(albums['items'], start=1):
+    print(f'{i}. {album["name"]}, Released {album["release_date"]}')
 
 tracks = get_playlist_items(access_token)
 print(json.dumps(tracks, indent=2))
