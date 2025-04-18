@@ -25,8 +25,6 @@ def get_token():
     token = response.json()
     return token
 
-# Variable holding the access token
-access_token = get_token()['access_token']
 #
 # def get_artists_albums(token):
 #     url = f'https://api.spotify.com/v1/artists/{'1uNFoZAHBGtllmzznpCI3s'}/albums'
@@ -57,7 +55,7 @@ def get_playlist_id():
     elif 'spotify:playlist:' in playlist_url:
         return playlist_url.split('spotify:playlist:')[1]
     else:
-        raise ValueError("❌ Invalid playlist URL or URI.")
+        raise ValueError("Invalid playlist URL or URI.")
 
 playlist_id = get_playlist_id()
 
@@ -69,8 +67,11 @@ def get_playlist_items(token):
     params = {
         'market' : 'US'
     }
-    response = requests.get(url, headers=headers, params=params)
+    response = get(url, headers=headers, params=params)
     return response.json()
+
+# Variable holding the access token
+access_token = get_token()['access_token']
 
 tracks = get_playlist_items(access_token)
 print(json.dumps(tracks, indent=2))
