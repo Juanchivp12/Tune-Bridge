@@ -25,27 +25,27 @@ def get_token():
     token = response.json()
     return token
 
-#
-# def get_artists_albums(token):
-#     url = f'https://api.spotify.com/v1/artists/{'1uNFoZAHBGtllmzznpCI3s'}/albums'
-#
-#     headers = {
-#         'Authorization': f'Bearer {token}'
-#     }
-#
-#     params = {
-#         'include_groups': 'album',
-#         'limit': 10
-#     }
-#
-#     response = requests.get(url, headers=headers, params=params)
-#     return response.json()
-#
-#
-# albums = get_artists_albums(access_token)
-#
-# for i, album in enumerate(albums['items'], start=1):
-#     print(f'{i}. {album["name"]}, Released {album["release_date"]}')
+
+def get_artists_albums(token):
+    url = f'https://api.spotify.com/v1/artists/{'1uNFoZAHBGtllmzznpCI3s'}/albums'
+
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+
+    params = {
+        'include_groups': 'album',
+        'limit': 10
+    }
+
+    response = requests.get(url, headers=headers, params=params)
+    return response.json()
+
+
+albums = get_artists_albums(access_token)
+
+for i, album in enumerate(albums['items'], start=1):
+    print(f'{i}. {album["name"]}, Released {album["release_date"]}')
 
 def get_playlist_id():
     playlist_url = input('Paste the Spotify playlist URL or URI: ')
