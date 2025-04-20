@@ -15,7 +15,7 @@
 ##  Tech Stack
 
 - **Python 3**
-- **Flask** – Web framework to handle routing and server logic
+- **Flask** – To handle routing and server logic
 - **HTML & CSS** – Frontend for user interface
 - **urllib** – To handle URL encoding and requests (used in the auth flow)
 - **requests** – For making HTTP requests to the Spotify API
