@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, session
+from flask import Flask, request, redirect, session, jsonify, render_template
 import random
 import requests
 import urllib.parse
@@ -6,13 +6,18 @@ import dotenv
 import os
 import base64
 from requests import get, post
-app = Flask(__name__)
+
 dotenv.load_dotenv()
+app = Flask(__name__)
+app.secret_key = os.urandom(32)
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 REDIRECT_URI = 'http://127.0.0.1:5000/callback'
-BASE_URL = 'https://api.spotify.com/v1'
+
+BASE_URL = 'https://api.spotify.com/v1/'
+AUTH_URL = 'https://accounts.spotify.com/authorize?'
+TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
 # Generate a random series of letters for the state
 def generate_state():
@@ -20,11 +25,10 @@ def generate_state():
     return ''.join(random.sample(letters, 16))
 @app.route('/')
 def index():
-    return redirect('/login')
+    return render_template('index.html')
 
 @app.route('/login')
 def login():
-    url = 'https://accounts.spotify.com/authorize?'
     state = generate_state()
     scope = 'user-library-read playlist-read-private playlist-modify-private playlist-modify-public'
     params = {
@@ -35,38 +39,54 @@ def login():
         'scope': scope,
         'show_dialog': True
     }
-    auth_url = url + urllib.parse.urlencode(params)
+    auth_url = AUTH_URL + urllib.parse.urlencode(params)
     return redirect(auth_url)
 
 @app.route('/callback')
 def callback():
-    code = request.args.get('code')
-    state = request.args.get('state')
-    url = 'https://accounts.spotify.com/api/token'
+    if 'error' in request.args:
+        return jsonify({'error': request.args['error']})
 
-    data = {
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': REDIRECT_URI,
-    }
-    headers = {
-        'Authorization': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-    response = post(url, headers=headers, data=data)
-    response.raise_for_status()
-    token_data = response.json()['access_token']
+    if 'code' in request.args and 'state' in request.args:
+        code = request.args.get('code')
+        state = request.args.get('state')
 
-    session['access_token'] = token_data['access_token']
-    session['refresh_token'] = token_data['refresh_token']
-    session['expires_in'] = token_data['expires_in']
+        auth_body = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': REDIRECT_URI,
+        }
+        headers = {
+            'Authorization': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        response = post(TOKEN_URL, headers=headers, data=auth_body)
+        token_data = response.json()
 
-    return redirect('/get_playlists')
+        session['access_token'] = token_data['access_token']
+        session['refresh_token'] = token_data['refresh_token']
+        session['expires_in'] = token_data['expires_in']
 
-@app.route('/get_playlists')
+        return redirect('/playlists')
+
+@app.route('/playlists')
 def get_playlists():
     if 'access_token' not in session:
         return redirect('/login')
+    if session['expires_in'] <= 0:
+        return redirect('/refresh-token')
+
+    access_token = session['access_token']
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = get(BASE_URL + 'me/playlists', headers=headers)
+    playlists = response.json()['items']
+    return playlists
+
+@app.route('/refresh-token')
+def refresh_token():
+    pass
 
 
 if __name__ == '__main__':
