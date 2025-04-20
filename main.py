@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, session
 import random
 import requests
 import urllib.parse
@@ -12,7 +12,7 @@ dotenv.load_dotenv()
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 REDIRECT_URI = 'http://127.0.0.1:5000/callback'
-BASE_URL = 'https://api.spotify.com'
+BASE_URL = 'https://api.spotify.com/v1'
 
 # Generate a random series of letters for the state
 def generate_state():
@@ -55,8 +55,19 @@ def callback():
     }
     response = post(url, headers=headers, data=data)
     response.raise_for_status()
-    token = response.json()['access_token']
-    return token
+    token_data = response.json()['access_token']
+
+    session['access_token'] = token_data['access_token']
+    session['refresh_token'] = token_data['refresh_token']
+    session['expires_in'] = token_data['expires_in']
+
+    return redirect('/get_playlists')
+
+@app.route('/get_playlists')
+def get_playlists():
+    if 'access_token' not in session:
+        return redirect('/login')
+
 
 if __name__ == '__main__':
     app.run()
