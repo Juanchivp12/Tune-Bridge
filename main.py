@@ -29,12 +29,13 @@ def index():
 def login():
     url = 'https://accounts.spotify.com/authorize?'
     state = generate_state()
-    scope = 'user-library-read' 'playlist-read-private' 'playlist-modify-private' 'playlist-modify-public'
+    scope = 'user-library-read playlist-read-private playlist-modify-private playlist-modify-public'
     params = {
         'client_id': CLIENT_ID,
         'response_type': 'code',
         'redirect_uri': REDIRECT_URI,
         'state': state,
+        'scope': scope,
         'show_dialog': True
     }
     auth_url = url + urllib.parse.urlencode(params)
@@ -52,34 +53,15 @@ def callback():
         'redirect_uri': REDIRECT_URI,
     }
     headers = {
-        'Authoritazion': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
+        'Authorization': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
         'Content-Type': 'application/x-www-form-urlencoded'
     }
     response = post(url, headers=headers, data=data)
-
-
-
-
-
-
-
-
-
-
-
-# Gets the token using client credentials for testing purposes
-def get_token():
-    url = 'https://accounts.spotify.com/api/token'
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8')
-    }
-    data = {
-        'grant_type': 'client_credentials'
-    }
-
-    response = requests.post(url, headers=headers, data=data)
     response.raise_for_status()
-    token = response.json()
-    return token
+    response_json = response.json()
+    access_token = response_json['access_token']
+    return access_token
+
+if __name__ == '__main__':
+    app.run()
 
