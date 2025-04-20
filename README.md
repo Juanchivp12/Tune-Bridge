@@ -23,20 +23,20 @@
 
 ## 🧪 How to Use
 
-# 1. Clone the repository
+1. Clone the repository
 git clone https://github.com/your-username/your-repo-name.git
 cd your-repo-name
 
-# 2. (Optional) Create a virtual environment
+ 2. (Optional) Create a virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 
-# 3. Install dependencies
+ 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Set up environment variables
+ 4. Set up environment variables
 cp .env.example .env
-# Then edit the .env file with your own credentials
+ Then edit the .env file with your own credentials
 
-# 5. Run the app
+ 5. Run the app
 python app.py  # Or flask run / uvicorn main:app / whatever fits your project
