@@ -25,6 +25,17 @@ TOKEN_URL = 'https://accounts.spotify.com/api/token'
 def generate_state():
     letters = 'abcdefghijklmnopqrstuvwxyz'
     return ''.join(random.sample(letters, 16))
+
+# Gets all the playlists of the authorized user
+def get_all_playlists(token):
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(BASE_URL + 'me/playlists', headers=headers)
+    return response.json()['items']
+
+def choose_playlist(playlists):
+    pass
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -69,22 +80,17 @@ def callback():
         session['refresh_token'] = token_data['refresh_token']
         session['expires_in'] = token_data['expires_in']
 
-        return redirect('/playlists')
+        return redirect('/choose-playlists')
 
-@app.route('/playlists')
-def get_playlists():
+@app.route('/choose-playlist')
+def choose_playlist():
     if 'access_token' not in session:
         return redirect('/login')
     if session['expires_in'] <= 0:
         return redirect('/refresh-token')
 
-    access_token = session['access_token']
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = get(BASE_URL + 'me/playlists', headers=headers)
-    playlists = response.json()['items']
-    return playlists
+    playlists = get_all_playlists(session['access_token'])
+
 
 @app.route('/refresh-token')
 def refresh_token():
