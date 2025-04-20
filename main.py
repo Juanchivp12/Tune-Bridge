@@ -1,5 +1,3 @@
-import code
-
 from flask import Flask, request, redirect
 import random
 import requests
@@ -7,14 +5,13 @@ import urllib.parse
 import dotenv
 import os
 import base64
-import json
 from requests import get, post
 app = Flask(__name__)
 dotenv.load_dotenv()
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-REDIRECT_URI = 'http://[::1]:8000/callback'
+REDIRECT_URI = 'http://127.0.0.1:5000/callback'
 BASE_URL = 'https://api.spotify.com'
 
 # Generate a random series of letters for the state
@@ -58,9 +55,8 @@ def callback():
     }
     response = post(url, headers=headers, data=data)
     response.raise_for_status()
-    response_json = response.json()
-    access_token = response_json['access_token']
-    return access_token
+    token = response.json()['access_token']
+    return token
 
 if __name__ == '__main__':
     app.run()
