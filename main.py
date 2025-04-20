@@ -1,3 +1,5 @@
+import webbrowser
+
 from flask import Flask, request, redirect, session, jsonify, render_template
 import random
 import requests
@@ -90,5 +92,6 @@ def refresh_token():
 
 
 if __name__ == '__main__':
+    webbrowser.open(REDIRECT_URI.strip('/callback'))
     app.run()
 

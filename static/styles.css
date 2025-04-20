@@ -2,33 +2,59 @@
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background-color: #f3f4f6;
-    padding: 20px;
+    background-color: #121212;
+    padding: 25px;
 }
 
 h1 {
     font-size: 2.5em;
-    color: #333;
+    color: #ffffff;
 }
 
 p {
-    font-size: 1.2em;
-    color: #666;
+    font-size: 1.0em;
+    color: #ffffff;
 }
 
+/* Button Styles */
 #loginButton {
     padding: 12px 24px;
     font-size: 18px;
     font-weight: bold;
-    color: white;
-    background-color: #1db954;
+    color: #ffffff; /* White text */
+    background-color: #1DB954; /* Spotify green */
     border: none;
     border-radius: 25px;
     cursor: pointer;
     text-transform: uppercase;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    position: relative; /* For better control of shadows */
+    overflow: hidden; /* Prevent overflow of shadow effects */
 }
 
+/* Hover effect: triggers custom animation */
 #loginButton:hover {
-    background-color: #1aa34a;
+    background-color: #1ed760; /* Brighter Spotify green */
+    transform: scale(1.05); /* Slightly enlarge the button */
+    animation: shadowFromLeft 0.6s ease forwards; /* Trigger shadow animation */
+}
+
+/* Keyframe animation for shadow coming from left */
+@keyframes shadowFromLeft {
+    0% {
+        box-shadow: -10px 0 20px rgba(30, 215, 96, 0); /* Shadow starts from left, invisible */
+    }
+    50% {
+        box-shadow: -5px 0 30px rgba(30, 215, 96, 0.4); /* Shadow grows and becomes visible */
+    }
+    100% {
+        box-shadow: 0 0 40px rgba(30, 215, 96, 0.6); /* Shadow centered and full strength */
+    }
+}
+
+/* Active effect (when clicking) */
+#loginButton:active {
+    transform: scale(1); /* Reset size during click */
+    animation: none; /* No shadow animation during active state */
+    box-shadow: 0 2px 10px rgba(30, 215, 96, 0.8); /* Smaller glow for click action */
 }
