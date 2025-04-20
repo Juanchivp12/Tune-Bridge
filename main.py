@@ -1,20 +1,78 @@
+import code
+
+from flask import Flask, request, redirect
+import random
+import requests
+import urllib.parse
 import dotenv
 import os
 import base64
 import json
-import requests
 from requests import get, post
+app = Flask(__name__)
 dotenv.load_dotenv()
 
-client_id = os.getenv('CLIENT_ID')
-client_secret = os.getenv('CLIENT_SECRET')
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+REDIRECT_URI = 'http://[::1]:8000/callback'
+BASE_URL = 'https://api.spotify.com'
 
-# Gets the token
+# Generate a random series of letters for the state
+def generate_state():
+    letters = 'abcdefghijklmnopqrstuvwxyz'
+    return ''.join(random.sample(letters, 16))
+@app.route('/')
+def index():
+    return redirect('/login')
+
+@app.route('/login')
+def login():
+    url = 'https://accounts.spotify.com/authorize?'
+    state = generate_state()
+    scope = 'user-library-read' 'playlist-read-private' 'playlist-modify-private' 'playlist-modify-public'
+    params = {
+        'client_id': CLIENT_ID,
+        'response_type': 'code',
+        'redirect_uri': REDIRECT_URI,
+        'state': state,
+        'show_dialog': True
+    }
+    auth_url = url + urllib.parse.urlencode(params)
+    return redirect(auth_url)
+
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    state = request.args.get('state')
+    url = 'https://accounts.spotify.com/api/token'
+
+    data = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': REDIRECT_URI,
+    }
+    headers = {
+        'Authoritazion': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    response = post(url, headers=headers, data=data)
+
+
+
+
+
+
+
+
+
+
+
+# Gets the token using client credentials for testing purposes
 def get_token():
     url = 'https://accounts.spotify.com/api/token'
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + base64.b64encode(f'{client_id}:{client_secret}'.encode('utf-8')).decode('utf-8')
+        'Authorization': 'Basic ' + base64.b64encode(f'{CLIENT_ID}:{CLIENT_SECRET}'.encode('utf-8')).decode('utf-8')
     }
     data = {
         'grant_type': 'client_credentials'
@@ -24,60 +82,4 @@ def get_token():
     response.raise_for_status()
     token = response.json()
     return token
-
-
-def get_artists_albums(token):
-    url = f'https://api.spotify.com/v1/artists/{'1uNFoZAHBGtllmzznpCI3s'}/albums'
-
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-
-    params = {
-        'include_groups': 'album',
-        'limit': 10
-    }
-
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
-
-def get_playlist_id():
-    playlist_url = input('Paste the Spotify playlist URL or URI: ')
-
-    if 'playlist/' in playlist_url:
-        return playlist_url.split('playlist/')[1].split('?')[0]
-    elif 'spotify:playlist:' in playlist_url:
-        return playlist_url.split('spotify:playlist:')[1]
-    else:
-        raise ValueError("Invalid playlist URL or URI.")
-
-playlist_id = get_playlist_id()
-
-def get_playlist_items(token):
-    url = f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks'
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    params = {
-        'market' : 'US'
-    }
-    response = get(url, headers=headers, params=params)
-    return response.json()
-
-# Variable holding the access token
-access_token = get_token()['access_token']
-
-albums = get_artists_albums(access_token)
-for i, album in enumerate(albums['items'], start=1):
-    print(f'{i}. {album["name"]}, Released {album["release_date"]}')
-
-tracks = get_playlist_items(access_token)
-print(json.dumps(tracks, indent=2))
-
-for i, track in enumerate(tracks['items'], start=1):
-    print(f'{i}. {track["track"]["name"]}')
-
-
-
-
 
