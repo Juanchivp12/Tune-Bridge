@@ -142,7 +142,7 @@ class Spotify:
                 'image_url': playlist['images'][0]['url'] if playlist['images'] else None
             }
             
-            return f"Found playlist: {playlist['name']}"
+            return f"Found playlist: {playlist}"
 
         @self.app.route('/refresh-token')
         def refresh_token():
