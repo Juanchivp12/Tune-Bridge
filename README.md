@@ -1,10 +1,10 @@
-# 🎵 Tune Bridge (WIP)
+#  Tune Bridge (WIP)
 
-**Tune Bridge** is a work-in-progress tool that lets you convert a spotify playlist into an apple music playlist and viceversa
+**Tune Bridge** is a work-in-progress tool that lets you convert a Spotify playlist into an Apple Music playlist — and vice versa.
 
 ---
 
-## 🚀 Features
+##  Features
 
 - OAuth2 Authorization Code Flow with Spotify
 - Fetch songs from any user playlist (public or private)
@@ -12,18 +12,17 @@
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
-- Python 3
-- `requests` for API calls
-- `dotenv` for secure environment variables
-- Native Spotify Web API (no Spotipy)
+- **Python 3**
+- **Flask** – To handle routing and server logic
+- **HTML & CSS** – Frontend for user interface
+- **urllib** – To handle URL encoding and requests (used in the auth flow)
+- **requests** – For making HTTP requests to the Spotify API
+- **dotenv** – For managing sensitive environment variables
+- **Spotify Web API** – Native usage (no Spotipy)
+
 
 ---
 
-## 🧪 How to Use
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/your-username/tune-bridge.git
-   cd tune-bridge
