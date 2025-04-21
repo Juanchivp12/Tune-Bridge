@@ -80,9 +80,9 @@ def callback():
         session['refresh_token'] = token_data['refresh_token']
         session['expires_in'] = token_data['expires_in']
 
-        return redirect('/choose-playlists')
+        return redirect('/playlists')
 
-@app.route('/choose-playlist')
+@app.route('/playlists')
 def choose_playlist():
     if 'access_token' not in session:
         return redirect('/login')
@@ -90,6 +90,8 @@ def choose_playlist():
         return redirect('/refresh-token')
 
     playlists = get_all_playlists(session['access_token'])
+
+    return render_template('playlists.html', playlists=playlists)
 
 
 @app.route('/refresh-token')
