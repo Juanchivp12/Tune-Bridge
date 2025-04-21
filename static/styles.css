@@ -1,88 +1,125 @@
 /* static/styles.css */
+/* Base Styles */
+:root {
+    --spotify-green: #1DB954;
+    --spotify-green-hover: #1ed760;
+    --background-dark: #121212;
+    --background-light: #1c1c1c;
+    --text-primary: #ffffff;
+    --border-color: #888;
+    --transition-speed: 0.3s;
+}
+
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background-color: #121212;
+    background-color: var(--background-dark);
     padding: 25px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* Typography */
 h1 {
     font-size: 2.5em;
-    color: #ffffff;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
 }
 
 p {
-    font-size: 1.0em;
-    color: #ffffff;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+/* Layout */
+.container {
+    max-width: 600px;
+    width: 100%;
+    padding: 2rem;
+}
+
+.playlist-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.input-group {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Form Elements */
+#playlistInput {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+    background-color: var(--background-light);
+    color: var(--text-primary);
+    outline: none;
+    transition: all var(--transition-speed) ease;
+}
+
+#playlistInput:hover {
+    border-color: var(--spotify-green);
+}
+
+#playlistInput:focus {
+    border-color: var(--spotify-green);
+    box-shadow: 0 0 8px rgba(30, 215, 96, 0.8);
+    background-color: #292929;
 }
 
 /* Button Styles */
-#loginButton {
+#loginButton,
+.btn-primary {
     padding: 12px 24px;
     font-size: 18px;
     font-weight: bold;
-    color: #ffffff; /* White text */
-    background-color: #1DB954; /* Spotify green */
+    color: var(--text-primary);
+    background-color: var(--spotify-green);
     border: none;
     border-radius: 25px;
     cursor: pointer;
     text-transform: uppercase;
-    transition: background-color 0.3s ease, transform 0.3s ease;
-    position: relative; /* For better control of shadows */
-    overflow: hidden; /* Prevent overflow of shadow effects */
+    transition: all var(--transition-speed) ease;
+    width: fit-content;
+    margin: 0 auto;
 }
 
-/* Hover effect: triggers custom animation */
-#loginButton:hover {
-    background-color: #1ed760; /* Brighter Spotify green */
-    transform: scale(1.05); /* Slightly enlarge the button */
-    animation: shadowFromLeft 0.6s ease forwards; /* Trigger shadow animation */
+#loginButton:hover,
+.btn-primary:hover {
+    background-color: var(--spotify-green-hover);
+    transform: scale(1.05);
+    animation: shadowFromLeft 0.6s ease forwards;
 }
 
-/* Keyframe animation for shadow coming from left */
+#loginButton:active,
+.btn-primary:active {
+    transform: scale(1);
+    animation: none;
+    box-shadow: 0 2px 10px rgba(30, 215, 96, 0.8);
+}
+
+/* Animations */
 @keyframes shadowFromLeft {
     0% {
-        box-shadow: -10px 0 20px rgba(30, 215, 96, 0); /* Shadow starts from left, invisible */
+        box-shadow: -10px 0 20px rgba(30, 215, 96, 0);
     }
+
     50% {
-        box-shadow: -5px 0 30px rgba(30, 215, 96, 0.4); /* Shadow grows and becomes visible */
+        box-shadow: -5px 0 30px rgba(30, 215, 96, 0.4);
     }
+
     100% {
-        box-shadow: 0 0 40px rgba(30, 215, 96, 0.6); /* Shadow centered and full strength */
+        box-shadow: 0 0 40px rgba(30, 215, 96, 0.6);
     }
 }
-
-/* Active effect (when clicking) */
-#loginButton:active {
-    transform: scale(1); /* Reset size during click */
-    animation: none; /* No shadow animation during active state */
-    box-shadow: 0 2px 10px rgba(30, 215, 96, 0.8); /* Smaller glow for click action */
-}
-
-/* Input Styles */
-#playlistInput {
-    width: 90%; /* Responsive width */
-    max-width: 400px; /* Maximum width for larger screens */
-    padding: 12px;
-    font-size: 16px;
-    margin-bottom: 20px;
-    border: 1px solid #888; /* Subtle border */
-    border-radius: 8px; /* Rounded edges */
-    text-align: center;
-    background-color: #1c1c1c; /* Dark input field background */
-    color: #ffffff; /* White text */
-    outline: none; /* Removes default focus outline */
-    transition: all 0.3s ease; /* Smooth transition */
-}
-
-/* Input Hover and Focus Effects */
-#playlistInput:hover {
-    border-color: #1DB954; /* Spotify green on hover */
-}
-
-#playlistInput:focus {
-    border-color: #1DB954; /* Spotify green during focus */
-    box-shadow: 0 0 8px rgba(30, 215, 96, 0.8); /* Green glow effect */
-    background-color: #292929; /* Slightly lighter background */
-}
-
