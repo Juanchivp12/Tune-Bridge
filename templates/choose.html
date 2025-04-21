@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convert Playlist</title>
+    <!-- Link to the external CSS file -->
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+    <h1>Convert Your Playlist</h1>
+    <p>Enter the name of your library playlist you want to convert to Apple Music:</p>
+    <form action="/convert_playlist" method="POST">
+        <input type="text" name="playlist_name" id="playlistInput" placeholder="Enter your playlist name" required>
+        <button type="submit" id="loginButton">Convert to Apple Music</button>
+    </form>
+</body>
+</html>

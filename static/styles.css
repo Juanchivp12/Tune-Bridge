@@ -1,4 +1,4 @@
-/* static/home.css */
+/* static/styles.css */
 body {
     font-family: Arial, sans-serif;
     text-align: center;
@@ -58,3 +58,31 @@ p {
     animation: none; /* No shadow animation during active state */
     box-shadow: 0 2px 10px rgba(30, 215, 96, 0.8); /* Smaller glow for click action */
 }
+
+/* Input Styles */
+#playlistInput {
+    width: 90%; /* Responsive width */
+    max-width: 400px; /* Maximum width for larger screens */
+    padding: 12px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    border: 1px solid #888; /* Subtle border */
+    border-radius: 8px; /* Rounded edges */
+    text-align: center;
+    background-color: #1c1c1c; /* Dark input field background */
+    color: #ffffff; /* White text */
+    outline: none; /* Removes default focus outline */
+    transition: all 0.3s ease; /* Smooth transition */
+}
+
+/* Input Hover and Focus Effects */
+#playlistInput:hover {
+    border-color: #1DB954; /* Spotify green on hover */
+}
+
+#playlistInput:focus {
+    border-color: #1DB954; /* Spotify green during focus */
+    box-shadow: 0 0 8px rgba(30, 215, 96, 0.8); /* Green glow effect */
+    background-color: #292929; /* Slightly lighter background */
+}
+
