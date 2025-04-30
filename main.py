@@ -105,6 +105,10 @@ class Spotify:
 
                 return redirect('/choose')
 
+        @self.app.route('/refresh-token')
+        def refresh_token():
+            pass
+
         @self.app.route('/choose')
         def choose():
             if 'access_token' not in session:
@@ -139,16 +143,15 @@ class Spotify:
             
             # Store the playlist info 
             session['selected_playlist'] = {
-                'id': playlist['id'],
                 'name': playlist['name'],
                 'tracks_url': playlist['tracks']['href'],
                 'image_url': playlist['images'][0]['url'] if playlist['images'] else None
             }
-            
-            return f"Found playlist: {playlist}"
 
-        @self.app.route('/refresh-token')
-        def refresh_token():
+            return redirect('/convert')
+
+        @self.app.route('/convert')
+        def convert():
             pass
 
 
