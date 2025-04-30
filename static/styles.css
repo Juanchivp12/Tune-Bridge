@@ -109,6 +109,22 @@ p {
     box-shadow: 0 2px 10px rgba(30, 215, 96, 0.8);
 }
 
+.styled-select {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #989898;
+    color: #f3f3f3;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpolygon fill='%23333' points='0,0 20,0 10,10'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+}
 /* Animations */
 @keyframes shadowFromLeft {
     0% {

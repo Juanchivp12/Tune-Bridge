@@ -12,6 +12,20 @@ dotenv.load_dotenv()
 # Constants 
 REDIRECT_URI = 'http://127.0.0.1:5000/callback'
 
+
+# Generates a random state for the OAuth flow
+def generate_state():
+    letters = 'abcdefghijklmnopqrstuvwxyz'
+    return ''.join(random.sample(letters, 16))
+
+ # Searches for a playlist by name
+def search_playlist(playlists, name, token):
+    for playlist in playlists:
+        if name.lower() in playlist['name'].lower():
+            return playlist['id']
+    return None
+
+
 class Spotify:
     def __init__(self, app):
         self.app = app
@@ -22,12 +36,8 @@ class Spotify:
         self.TOKEN_URL = 'https://accounts.spotify.com/api/token'
         
         self.register_routes()
-    
-    # Generates a random state for the OAuth flow
-    def generate_state(self):
-        letters = 'abcdefghijklmnopqrstuvwxyz'
-        return ''.join(random.sample(letters, 16))
-    
+
+
     # Gets all playlists from the user's library
     def get_all_playlists(self, token):
         headers = {
@@ -35,14 +45,7 @@ class Spotify:
         }
         response = get(self.BASE_URL + 'me/playlists', headers=headers)
         return response.json()['items']
-    
-    # Searches for a playlist by name
-    def search_playlist(self, playlists, name, token):
-        for playlist in playlists:
-            if name.lower() in playlist['name'].lower():
-                return playlist['id']
-        return None
-    
+
     # Gets a playlist by id
     def get_playlist(self, playlist_id, token):
         if not playlist_id:
@@ -62,7 +65,7 @@ class Spotify:
 
         @self.app.route('/login')
         def login():
-            state = self.generate_state()
+            state = generate_state()
             scope = 'user-library-read playlist-read-private playlist-modify-private playlist-modify-public'
             params = {
                 'client_id': self.CLIENT_ID,
@@ -124,7 +127,7 @@ class Spotify:
             if not playlist_name:
                 return redirect('/choose')
             
-            playlist_id = self.search_playlist(playlists, playlist_name, token)
+            playlist_id = search_playlist(playlists, playlist_name, token)
             
             if not playlist_id:
                 return "Playlist not found"

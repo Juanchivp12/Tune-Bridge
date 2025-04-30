@@ -2,23 +2,29 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Convert your Spotify playlists to Apple Music">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Convert your Spotify playlists to Apple Music" />
     <title>Convert Playlist | Tune Bridge</title>
-    <!-- Link to the external CSS file -->
-    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="static/styles.css" />
 </head>
 
 <body>
     <main class="container">
         <h1>Convert Your Playlist</h1>
-        <p class="description">Enter the name of your library playlist you want to convert to Apple Music:</p>
+        <p class="description">Select one of your playlists to convert to Apple Music:</p>
+
         <form action="/chosen-playlist" method="POST" class="playlist-form">
             <div class="input-group">
-                <input type="text" name="playlist_name" id="playlistInput" placeholder="Enter your playlist name"
-                    required aria-label="Playlist name">
+                <label for="playlistSelect" class="description">Your Playlists:</label>
+                <select name="playlist_name" id="playlistSelect" required class="styled-select">
+                    <option value="">-- Select a playlist --</option>
+                    {% for playlist in playlists %}
+                        <option value="{{ playlist.name }}">{{ playlist.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
+
             <button type="submit" class="btn-primary">Convert to Apple Music</button>
         </form>
     </main>
