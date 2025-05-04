@@ -82,28 +82,30 @@ class Spotify:
         def callback():
             if 'error' in request.args:
                 return jsonify({'error': request.args['error']})
+            if 'code' or 'state' not in request.args:
+                # Add proper error handling
+                return 'Code or state not found'
 
-            if 'code' in request.args and 'state' in request.args:
-                code = request.args.get('code')
-                state = request.args.get('state')
+            code = request.args.get('code')
+            state = request.args.get('state')
 
-                auth_body = {
-                    'grant_type': 'authorization_code',
-                    'code': code,
-                    'redirect_uri': REDIRECT_URI,
-                }
-                headers = {
-                    'Authorization': 'Basic ' + base64.b64encode(f'{self.CLIENT_ID}:{self.CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-                response = post(self.TOKEN_URL, headers=headers, data=auth_body)
-                token_data = response.json()
+            auth_body = {
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': REDIRECT_URI,
+            }
+            headers = {
+                'Authorization': 'Basic ' + base64.b64encode(f'{self.CLIENT_ID}:{self.CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            response = post(self.TOKEN_URL, headers=headers, data=auth_body)
+            token_data = response.json()
 
-                session['access_token'] = token_data['access_token']
-                session['refresh_token'] = token_data['refresh_token']
-                session['expires_in'] = token_data['expires_in']
+            session['access_token'] = token_data['access_token']
+            session['refresh_token'] = token_data['refresh_token']
+            session['expires_in'] = token_data['expires_in']
 
-                return redirect('/choose')
+            return redirect('/choose')
 
         @self.app.route('/refresh-token')
         def refresh_token():
