@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ playlist.name }} - Tracks | Tune Bridge</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<body>
+    <main class="container">
+        <h1>Tracks in "{{ playlist.name }}"</h1>
+        {% if playlist.image_url %}
+        <img src="{{ playlist.images[0].url }}" alt="Playlist cover"
+            style="max-width:200px; border-radius:12px; margin-bottom:1rem;" />
+        {% endif %}
+        <table style="width:100%; margin-top:2rem; border-collapse:collapse;">
+            <thead>
+                <tr style="background:#222; color:#fff;">
+                    <th style="padding:10px; text-align:left;">Track</th>
+                    <th style="padding:10px; text-align:left;">Artist(s)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for track in tracks %}
+                <tr style="border-bottom:1px solid #444;">
+                    <td style="padding:10px;">{{ track.name }}</td>
+                    <td style="padding:10px;">{{ track.artists }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="/choose" class="btn-primary" style="margin-top:2rem; display:inline-block;">Back to Playlists</a>
+    </main>
+</body>
+
+</html>

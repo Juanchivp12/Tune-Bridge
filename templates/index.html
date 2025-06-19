@@ -6,13 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to TuneBridge</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+    <script src="https://js-cdn.music.apple.com/musickit/v1/musickit.js"></script>
+    <script src="{{ url_for('static', filename='AppleMusicAuth.js') }}"></script>
 </head>
 
 <body>
     <div class="container">
         <h1>Welcome to TuneBridge</h1>
-        <p>Your bridge to enjoy Spotify playlists more efficiently.</p>
-        <button id="loginButton" onclick="window.location.href='/login'">Login with Spotify</button>
+        <p>Your bridge to enjoy your playlists more efficiently.</p>
+        <button class="btn-apple" onclick="alert('Apple Music conversion coming soon!')">Convert to Spotify</button>
+        <button id="loginButton" onclick="window.location.href='/login'">Convert to Apple Music</button>
     </div>
 </body>
 
