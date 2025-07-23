@@ -11,10 +11,12 @@
 <body>
     <main class="container">
         <h1>Tracks in "{{ playlist.name }}"</h1>
+
         {% if playlist.image_url %}
         <img src="{{ playlist.images[0].url }}" alt="Playlist cover"
             style="max-width:200px; border-radius:12px; margin-bottom:1rem;" />
         {% endif %}
+
         <table style="width:100%; margin-top:2rem; border-collapse:collapse;">
             <thead>
                 <tr style="background:#222; color:#fff;">
@@ -31,6 +33,12 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Convert to Apple Music Button -->
+        <form action="/convert" method="get" style="margin-top:2rem;">
+            <button type="submit" class="btn-primary">Convert to Apple Music</button>
+        </form>
+
         <a href="/choose" class="btn-primary" style="margin-top:2rem; display:inline-block;">Back to Playlists</a>
     </main>
 </body>

@@ -6,14 +6,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Convert your Spotify playlists to Apple Music" />
     <title>Convert Playlist | Tune Bridge</title>
-    <link rel="stylesheet" href="static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://js-cdn.music.apple.com/musickit/v1/musickit.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const appleBtn = document.getElementById('apple-login-btn');
+            const convertBtn = document.getElementById('convert-btn');
+            const developerToken = "{{ developer_token|safe }}";
+
+            MusicKit.configure({
+                developerToken,
+                app: {
+                    name: 'TuneBridge',
+                    build: '1.0.0'
+                }
+            });
+
+            const music = MusicKit.getInstance();
+
+            appleBtn.addEventListener('click', async () => {
+                try {
+                    const userToken = await music.authorize();
+                    localStorage.setItem('apple_user_token', userToken);
+
+                    const res = await fetch('/apple-music-token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_token: userToken,
+                            developer_token: developerToken
+                        })
+                    });
+
+                    if (res.ok) {
+                        alert('Apple Music login successful!');
+                        appleBtn.disabled = true;
+                        convertBtn.disabled = false;
+                    } else {
+                        alert('Error storing Apple Music tokens');
+                    }
+                } catch (err) {
+                    alert('Apple login failed: ' + err.message);
+                }
+            });
+        });
+    </script>
 </head>
 
 <body>
     <main class="container">
         <h1>Convert Your Playlist</h1>
-        <p class="description">Select one of your playlists to convert to Apple Music:</p>
+        <p class="description">Step 1: Log in to Apple Music</p>
+        <button type="button" class="btn-primary" id="apple-login-btn">Sign in with Apple Music</button>
 
+        <p class="description" style="margin-top:2rem;">Step 2: Select your Spotify playlist</p>
         <form action="/chosen-playlist" method="POST" class="playlist-form">
             <div class="input-group">
                 <label for="playlistSelect" class="description">Your Playlists:</label>
@@ -25,7 +71,7 @@
                 </select>
             </div>
 
-            <button type="submit" class="btn-primary">Convert to Apple Music</button>
+            <button type="submit" class="btn-primary" id="convert-btn" disabled>Continue</button>
         </form>
     </main>
 </body>

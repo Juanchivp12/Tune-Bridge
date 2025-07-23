@@ -175,3 +175,6 @@ cython_debug/
 
 #.env file
 .env
+
+# js script
+AppleMusicAuth.js

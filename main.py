@@ -6,6 +6,8 @@ import dotenv
 import os
 import base64
 from requests import get, post
+import jwt
+import time
 
 dotenv.load_dotenv()
 
@@ -38,6 +40,24 @@ def search_playlist(playlists, name, token):
         if name.lower() in playlist['name'].lower():
             return playlist['id']
     return None
+
+def generate_apple_dev_token():
+    team_id = os.getenv('TEAM_ID')
+    key_id = os.getenv('KEY_ID')
+    private_key = os.getenv('PRIVATE_KEY')
+
+    headers = {
+        'alg': 'ES256',
+        'kid': key_id
+    }
+
+    payload = {
+        'iss': team_id,
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 86400,
+    }
+
+    return jwt.encode(payload, private_key, algorithm='ES256', headers=headers)
 
 
 class Spotify:
@@ -175,7 +195,8 @@ class Spotify:
                 return redirect('/refresh-token')
 
             playlists = self.get_all_playlists(session['access_token'])
-            return render_template('choose.html', playlists=playlists)
+            developer_token = generate_apple_dev_token()
+            return render_template('choose.html', playlists=playlists, developer_token=developer_token)
 
         @self.app.route('/chosen-playlist', methods=['POST'])
         def chosen_playlist():
@@ -184,6 +205,9 @@ class Spotify:
             """
             if 'access_token' not in session:
                 return redirect('/login')
+
+            if session.get('expires_in') <= 0:
+                return redirect('/refresh-token')
 
             token = session['access_token']
             playlists = self.get_all_playlists(token)
@@ -201,6 +225,11 @@ class Spotify:
             
             if not playlist:
                 return "Error fetching playlist details"
+
+            try:
+                session['apple_developer_token'] = generate_apple_dev_token()
+            except Exception as e:
+                return f"Error generating apple developer token: {str(e)}", 500
             
             # Store the playlist info 
             session['selected_playlist'] = {
@@ -219,14 +248,62 @@ class Spotify:
                     artists = ', '.join([artist['name'] for artist in track.get('artists', [])])
                     tracks.append({'name': track_name, 'artists': artists})
 
-            return render_template('playlist_tracks.html', playlist=playlist, tracks=tracks)
+            session['tracks'] = tracks
+
+            return render_template('playlist_tracks.html', playlist=playlist, tracks=tracks, developer_token=session['apple_developer_token'])
+
+        @self.app.route('/apple-music-token', methods=['POST'])
+        def receive_apple_music_token():
+            data = request.get_json()
+            user_token = data.get('user_token')
+            developer_token = data.get('developer_token')
+
+            if not user_token or not developer_token:
+                return jsonify({'error': 'Missing Apple Music Tokens'}), 400
+
+            session['apple_music_token'] = user_token
+            session['apple_developer_token'] = developer_token
+
+            return jsonify({'message': 'Tokens received successfully'}), 200
 
         @self.app.route('/convert')
         def convert():
-            """
-            Placeholder for playlist conversion logic.
-            """
-            pass
+            if 'access_token' not in session:
+                return redirect('/login')
+
+            dev_token = session.get('apple_developer_token')
+            user_token = session.get('apple_music_token')
+
+            if not user_token or not dev_token:
+                return jsonify(
+                    {'error': 'Apple Music tokens are missing. Please authenticate with Apple Music again.'}), 400
+
+            playlist_name = session['selected_playlist']['name']
+            tracks = session['tracks']
+
+            headers = {
+                'Authorization': f'Bearer {dev_token}',
+                'Music-user-token': user_token,
+                'Content-Type': 'application/json'
+            }
+
+            data = {
+                "attributes": {
+                    'name': playlist_name,
+                    'description': 'playlist from spotify'
+                }
+            }
+
+            url = 'https://api.music.apple.com/v1/me/library/playlists'
+            response = post(url, headers=headers, json=data)
+
+            if response.status_code == 201:
+                playlist = response.json().get('data')[0]
+                return jsonify({'success': True, 'playlist_id': playlist['id']})
+            else:
+                return (jsonify({'error': 'Failed to create playlist', 'status': response.status_code, 'details': response.text})
+                            , response.status_code)
+
 
 
 def create_app():

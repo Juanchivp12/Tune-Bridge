@@ -1,11 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    const developerToken = "{{ developer_token|safe }}"; // Injected from Flask
 
-    // You need to replace this with your actual developer token from Apple Developer Console
-    const developerToken = "YOUR_DEVELOPER_TOKEN_HERE";
-
-    // Configure MusicKit
     MusicKit.configure({
-        developerToken: developerToken,
+        developerToken,
         app: {
             name: 'TuneBridge',
             build: '1.0.0'
@@ -13,81 +10,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const music = MusicKit.getInstance();
-
     const appleBtn = document.querySelector('.btn-apple');
+
+    async function sendTokensToBackend(userToken) {
+        const response = await fetch('/apple-music-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_token: userToken,
+                developer_token: developerToken
+            })
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Failed to send token:', text);
+            alert('Error sending tokens to backend.');
+        } else {
+            const result = await response.json();
+            console.log('Token stored on backend:', result);
+        }
+    }
+
     if (appleBtn) {
         appleBtn.addEventListener('click', async () => {
             try {
-                // Check if user is already authorized
-                if (music.isAuthorized) {
-                    alert('Already authorized with Apple Music!');
-                    return;
-                }
+                let userToken = localStorage.getItem('apple_user_token');
 
-                // Request authorization
-                const userToken = await music.authorize();
-                console.log('Apple Music authorization successful');
-                alert('Apple Music authentication successful!');
-
-                // Send token to backend for usage
-                const response = await fetch('/apple-music-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_token: userToken,
-                        developer_token: developerToken
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    alert('Apple Music token sent to backend successfully');
-                    console.log('Backend response:', data);
+                if (!userToken || !music.isAuthorized) {
+                    userToken = await music.authorize();
+                    localStorage.setItem('apple_user_token', userToken);
+                    alert('Apple Music authentication successful!');
                 } else {
-                    throw new Error('Failed to send token to backend');
+                    alert('Already authorized with Apple Music!');
                 }
 
-            } catch (error) {
-                console.error('Apple Music authentication error:', error);
-                alert('Apple Music authentication failed: ' + error.message);
+                await sendTokensToBackend(userToken);
+            } catch (err) {
+                console.error('Authorization error:', err);
+                alert('Apple Music login failed: ' + err.message);
             }
         });
     }
 
-    // Add function to search Apple Music
+    // Optional helper functions for search and library
     window.searchAppleMusic = async (query) => {
-        try {
-            if (!music.isAuthorized) {
-                throw new Error('Not authorized with Apple Music');
-            }
-
-            const results = await music.api.search(query, {
-                types: ['songs', 'albums', 'playlists'],
-                limit: 20
-            });
-
-            return results;
-        } catch (error) {
-            console.error('Apple Music search error:', error);
-            throw error;
-        }
+        if (!music.isAuthorized) throw new Error('Not authorized with Apple Music');
+        return await music.api.search(query, { types: ['songs', 'albums', 'playlists'], limit: 20 });
     };
 
-    // Add function to get user's Apple Music library
     window.getAppleMusicLibrary = async () => {
-        try {
-            if (!music.isAuthorized) {
-                throw new Error('Not authorized with Apple Music');
-            }
-
-            const library = await music.api.library.playlists();
-            return library;
-        } catch (error) {
-            console.error('Apple Music library error:', error);
-            throw error;
-        }
+        if (!music.isAuthorized) throw new Error('Not authorized with Apple Music');
+        return await music.api.library.playlists();
     };
-
 });
