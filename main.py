@@ -125,8 +125,8 @@ def get_apple_music_library_song_id(artist_name, track_name, dev_token, user_tok
         'limit': 1
     }
 
-    # Retry up to 3 times in case it hasn't synced yet
-    for i in range(3):
+    # Retry up to 5 times in case it hasn't synced yet
+    for i in range(5):
         response = get(url, headers=headers, params=params)
         data = response.json()
 
@@ -136,7 +136,7 @@ def get_apple_music_library_song_id(artist_name, track_name, dev_token, user_tok
         try:
             return data['results']['library-songs']['data'][0]['id']
         except (KeyError, IndexError):
-            time.sleep(2)  # wait a bit and retry
+            time.sleep(3)  # wait a bit and retry
 
     return None
 
@@ -438,13 +438,14 @@ class Spotify:
                 else:
                     added_to_library = add_song_apple_music_library(track_id, dev_token, user_token)
                     if added_to_library:
-                        library_song_id = get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token)
-                        result = add_song_apple_music_playlist(library_song_id, playlist_id, dev_token, user_token)
+                        time.sleep(3)
+                        # library_song_id = get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token)
+                        result = add_song_apple_music_playlist(track_id, playlist_id, dev_token, user_token)
                         print("Add result:", result)
                     else:
                         print("Failed to add track:", track)
 
-            return jsonify({'success': True, 'message': 'Playlist successfully converted and tracks added.'})
+            return jsonify({'success': True, 'message': 'Playlist successfully converted and tracks added.', 'tracks not found': not_found_tracks}), 200
 
 
 def create_app():
