@@ -25,8 +25,8 @@ def generate_state():
     letters = 'abcdefghijklmnopqrstuvwxyz'
     return ''.join(random.sample(letters, 16))
 
- # Searches for a playlist by name
-def search_playlist(playlists, name, token):
+# Searches for a playlist by name
+def search_spotify_playlist(playlists, name, token):
     """
     Searches for a playlist by name in the user's playlists.
     Args:
@@ -41,6 +41,141 @@ def search_playlist(playlists, name, token):
             return playlist['id']
     return None
 
+# Creates a new playlist on apple music
+def create_apple_music_playlist(playlist_name, dev_token, user_token):
+    url = 'https://api.music.apple.com/v1/me/library/playlists'
+
+    headers = {
+        'Authorization': f'Bearer {dev_token}',
+        'Music-User-Token': user_token,
+        'Content-Type': 'application/json'
+    }
+
+    data = {
+        "attributes": {
+            'name': playlist_name,
+            'description': 'playlist from spotify'
+        }
+    }
+
+    response = post(url, headers=headers, json=data)
+
+    if response.status_code == 201:
+        playlist = response.json().get('data')[0]
+        return {'success': True, 'playlist_id': playlist['id']}
+    else:
+        return {
+            'error': 'Failed to create playlist',
+            'status': response.status_code,
+            'details': response.text
+        }
+
+# Searches for a song in the Apple Music US catalog
+def search_apple_music_track(artist_name, track_name, dev_token, user_token):
+    url = "https://api.music.apple.com/v1/catalog/us/search"
+
+    params = {
+        'term': f"{artist_name} {track_name}",
+        'types': 'songs',
+        'limit': 1
+    }
+
+    headers = {
+        'Authorization': f'Bearer {dev_token}',
+        'Music-User-Token': user_token
+    }
+
+    # Send a response to then get the song ID
+    response = get(url, headers=headers, params=params)
+    data = response.json()
+
+    try:
+        track_id = data['results']['songs']['data'][0]['id']
+        return track_id
+    except (KeyError, IndexError):
+        return None
+
+def add_song_apple_music_library(track_id, dev_token, user_token):
+    url = 'https://api.music.apple.com/v1/me/library'
+
+    headers = {
+        'Authorization': f'Bearer {dev_token}',
+        'Music-User-Token': user_token,
+        'Content-Type': 'application/json'
+    }
+
+    params = {
+        'ids[songs]': track_id,
+    }
+
+    response = post(url, headers=headers, params=params)
+
+    return response.status_code == 202 or response.status_code == 204
+
+def get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token):
+    url = 'https://api.music.apple.com/v1/me/library/search'
+    headers = {
+        'Authorization': f'Bearer {dev_token}',
+        'Music-User-Token': user_token,
+    }
+
+    params = {
+        'term': f"{artist_name} {track_name}",
+        'types': 'library-songs',
+        'limit': 1
+    }
+
+    # Retry up to 3 times in case it hasn't synced yet
+    for i in range(3):
+        response = get(url, headers=headers, params=params)
+        data = response.json()
+
+        print(f"[Attempt {i+1}] Searching for library track: {artist_name} - {track_name}")
+        print("Library search response:", data)
+
+        try:
+            return data['results']['library-songs']['data'][0]['id']
+        except (KeyError, IndexError):
+            time.sleep(2)  # wait a bit and retry
+
+    return None
+
+
+def add_song_apple_music_playlist(library_track_id, playlist_id, dev_token, user_token):
+    url = f'https://api.music.apple.com/v1/me/library/playlists/{playlist_id}/tracks'
+
+    if not library_track_id:
+        return {'error': 'track_id is None — cannot add to playlist'}
+
+    headers = {
+        'Authorization': f'Bearer {dev_token}',
+        'Music-User-Token': user_token,
+        'Content-Type': 'application/json'
+    }
+
+    body = {
+        'data': [
+            {
+            'id': str(library_track_id),
+            'type': 'songs',
+            }
+        ]
+    }
+
+    response = post(url, headers=headers, json=body)
+    print("Track added:", library_track_id, "Status:", response.status_code)
+    print("Response body:", response.text)
+
+    if response.status_code == 204:
+        return {'success': True, 'message': 'Song added to playlist'}
+    else:
+        return {
+            'error': 'Failed to add song',
+            'status': response.status_code,
+            'details': response.text
+        }
+
+# Generates an apple developer token
 def generate_apple_dev_token():
     team_id = os.getenv('TEAM_ID')
     key_id = os.getenv('KEY_ID')
@@ -216,7 +351,7 @@ class Spotify:
             if not playlist_name:
                 return redirect('/choose')
             
-            playlist_id = search_playlist(playlists, playlist_name, token)
+            playlist_id = search_spotify_playlist(playlists, playlist_name, token)
             
             if not playlist_id:
                 return "Playlist not found"
@@ -246,7 +381,12 @@ class Spotify:
                 if track:
                     track_name = track.get('name')
                     artists = ', '.join([artist['name'] for artist in track.get('artists', [])])
-                    tracks.append({'name': track_name, 'artists': artists})
+                    album = track.get('album', {}).get('name', '')
+                    tracks.append({
+                        'name': track_name,
+                        'artists': artists,
+                        'album': album
+                    })
 
             session['tracks'] = tracks
 
@@ -279,31 +419,32 @@ class Spotify:
                     {'error': 'Apple Music tokens are missing. Please authenticate with Apple Music again.'}), 400
 
             playlist_name = session['selected_playlist']['name']
+            playlist_response = create_apple_music_playlist(playlist_name, dev_token, user_token)
+            playlist_id = playlist_response['playlist_id']
+            if not playlist_id:
+                return jsonify({'error': 'Failed to create Apple Music playlist'}), 500
+
             tracks = session['tracks']
 
-            headers = {
-                'Authorization': f'Bearer {dev_token}',
-                'Music-user-token': user_token,
-                'Content-Type': 'application/json'
-            }
+            not_found_tracks = []
 
-            data = {
-                "attributes": {
-                    'name': playlist_name,
-                    'description': 'playlist from spotify'
-                }
-            }
+            for track in tracks:
+                artist_name = track['artists']
+                track_name = track['name']
 
-            url = 'https://api.music.apple.com/v1/me/library/playlists'
-            response = post(url, headers=headers, json=data)
+                track_id = search_apple_music_track(artist_name, track_name, dev_token, user_token)
+                if not track_id:
+                    not_found_tracks.append(track)
+                else:
+                    added_to_library = add_song_apple_music_library(track_id, dev_token, user_token)
+                    if added_to_library:
+                        library_song_id = get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token)
+                        result = add_song_apple_music_playlist(library_song_id, playlist_id, dev_token, user_token)
+                        print("Add result:", result)
+                    else:
+                        print("Failed to add track:", track)
 
-            if response.status_code == 201:
-                playlist = response.json().get('data')[0]
-                return jsonify({'success': True, 'playlist_id': playlist['id']})
-            else:
-                return (jsonify({'error': 'Failed to create playlist', 'status': response.status_code, 'details': response.text})
-                            , response.status_code)
-
+            return jsonify({'success': True, 'message': 'Playlist successfully converted and tracks added.'})
 
 
 def create_app():
