@@ -14,6 +14,13 @@ dotenv.load_dotenv()
 # Constants 
 REDIRECT_URI = 'http://127.0.0.1:5000/callback'
 
+# Spotify Constants
+SPOTIFY_CLIENT_ID = os.getenv('CLIENT_ID')
+SPOTIFY_CLIENT_SECRET = os.getenv('CLIENT_SECRET')
+SPOTIFY_BASE_URL = 'https://api.spotify.com/v1/'
+SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize?'
+SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token'
+
 
 # Generates a random state for the OAuth flow
 def generate_state():
@@ -194,268 +201,250 @@ def generate_apple_dev_token():
 
     return jwt.encode(payload, private_key, algorithm='ES256', headers=headers)
 
+def get_all_playlists(token):
+    """
+    Fetches all playlists from the user's Spotify library.
+    Args:
+        token (str): Spotify access token.
+    Returns:
+        list: List of playlist objects.
+    """
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(SPOTIFY_BASE_URL + 'me/playlists', headers=headers)
+    return response.json()['items']
 
-class Spotify:
-    def __init__(self, app):
-        """
-        Initializes the Spotify integration with the Flask app and loads credentials from environment variables.
-        Args:
-            app (Flask): The Flask application instance.
-        """
-        self.app = app
-        self.CLIENT_ID = os.getenv('CLIENT_ID')
-        self.CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-        self.BASE_URL = 'https://api.spotify.com/v1/'
-        self.AUTH_URL = 'https://accounts.spotify.com/authorize?'
-        self.TOKEN_URL = 'https://accounts.spotify.com/api/token'
-        
-        self.register_routes()
+def get_playlist(playlist_id, token):
+    """
+    Fetches a specific playlist by its ID.
+    Args:
+        playlist_id (str): The Spotify playlist ID.
+        token (str): Spotify access token.
+    Returns:
+        dict or None: Playlist object if found, else None.
+    """
+    if not playlist_id:
+        return None
 
-
-    def get_all_playlists(self, token):
-        """
-        Fetches all playlists from the user's Spotify library.
-        Args:
-            token (str): Spotify access token.
-        Returns:
-            list: List of playlist objects.
-        """
-        headers = {
-            'Authorization': f'Bearer {token}'
-        }
-        response = get(self.BASE_URL + 'me/playlists', headers=headers)
-        return response.json()['items']
-
-    def get_playlist(self, playlist_id, token):
-        """
-        Fetches a specific playlist by its ID.
-        Args:
-            playlist_id (str): The Spotify playlist ID.
-            token (str): Spotify access token.
-        Returns:
-            dict or None: Playlist object if found, else None.
-        """
-        if not playlist_id:
-            return None
-            
-        headers = {
-            'Authorization': f'Bearer {token}'
-        }
-        response = get(f'{self.BASE_URL}playlists/{playlist_id}', headers=headers)
-        return response.json()
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(f'{SPOTIFY_BASE_URL}playlists/{playlist_id}', headers=headers)
+    return response.json()
     
-    def get_playlist_tracks(self, playlist_id, token):
-        """
-        Fetches all tracks from a specific playlist by its ID.
-        Args:
-            playlist_id (str): The Spotify playlist ID.
-            token (str): Spotify access token.
-        Returns:
-            list: List of track objects in the playlist.
-        """
-        headers = {
-            'Authorization': f'Bearer {token}'
+def get_playlist_tracks(playlist_id, token):
+    """
+    Fetches all tracks from a specific playlist by its ID.
+    Args:
+        playlist_id (str): The Spotify playlist ID.
+        token (str): Spotify access token.
+    Returns:
+        list: List of track objects in the playlist.
+    """
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(f'{SPOTIFY_BASE_URL}playlists/{playlist_id}/tracks', headers=headers)
+    return response.json()['items']
+
+def register_routes(app):
+    #Registers all Flask routes/endpoints for the Spotify integration.
+    @app.route('/')
+    def index():
+        """Renders the landing page."""
+        return render_template('index.html')
+
+    @app.route('/login')
+    def login():
+        # Redirects the user to Spotify's OAuth login page.
+        state = generate_state()
+        scope = 'user-library-read playlist-read-private playlist-modify-private playlist-modify-public'
+        params = {
+            'client_id': SPOTIFY_CLIENT_ID,
+            'response_type': 'code',
+            'redirect_uri': REDIRECT_URI,
+            'state': state,
+            'scope': scope,
+            'show_dialog': True
         }
-        response = get(f'{self.BASE_URL}playlists/{playlist_id}/tracks', headers=headers)
-        return response.json()['items']
+        auth_url = SPOTIFY_AUTH_URL + urllib.parse.urlencode(params)
+        return redirect(auth_url)
 
-    def register_routes(self):
-        #Registers all Flask routes/endpoints for the Spotify integration.
-        @self.app.route('/')
-        def index():
-            """Renders the landing page."""
-            return render_template('index.html')
+    @app.route('/callback')
+    def callback():
+        """
+        Handles the redirect from Spotify after user login, exchanges code for access token.
+        """
+        if 'error' in request.args:
+            return jsonify({'error': request.args['error']})
+        if 'code' not in request.args or 'state' not in request.args:
+            # Add proper error handling
+            return 'Code or state not found'
 
-        @self.app.route('/login')
-        def login():
-            # Redirects the user to Spotify's OAuth login page.
-            state = generate_state()
-            scope = 'user-library-read playlist-read-private playlist-modify-private playlist-modify-public'
-            params = {
-                'client_id': self.CLIENT_ID,
-                'response_type': 'code',
-                'redirect_uri': REDIRECT_URI,
-                'state': state,
-                'scope': scope,
-                'show_dialog': True
-            }
-            auth_url = self.AUTH_URL + urllib.parse.urlencode(params)
-            return redirect(auth_url)
+        code = request.args.get('code')
+        state = request.args.get('state')
 
-        @self.app.route('/callback')
-        def callback():
-            """
-            Handles the redirect from Spotify after user login, exchanges code for access token.
-            """
-            if 'error' in request.args:
-                return jsonify({'error': request.args['error']})
-            if 'code' not in request.args or 'state' not in request.args:
-                # Add proper error handling
-                return 'Code or state not found'
+        auth_body = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': REDIRECT_URI,
+        }
+        headers = {
+            'Authorization': 'Basic ' + base64.b64encode(f'{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        response = post(SPOTIFY_TOKEN_URL, headers=headers, data=auth_body)
+        token_data = response.json()
 
-            code = request.args.get('code')
-            state = request.args.get('state')
+        session['access_token'] = token_data['access_token']
+        session['refresh_token'] = token_data['refresh_token']
+        session['expires_in'] = token_data['expires_in']
 
-            auth_body = {
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': REDIRECT_URI,
-            }
-            headers = {
-                'Authorization': 'Basic ' + base64.b64encode(f'{self.CLIENT_ID}:{self.CLIENT_SECRET}'.encode('utf-8')).decode('utf-8'),
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            response = post(self.TOKEN_URL, headers=headers, data=auth_body)
-            token_data = response.json()
+        return redirect('/choose')
 
-            session['access_token'] = token_data['access_token']
-            session['refresh_token'] = token_data['refresh_token']
-            session['expires_in'] = token_data['expires_in']
+    @app.route('/refresh-token')
+    def refresh_token():
+        """
+        Placeholder for refreshing the Spotify access token.
+        """
+        pass
 
+    @app.route('/choose')
+    def choose():
+        # Displays a list of the user's playlists to choose from.
+        if 'access_token' not in session:
+            return redirect('/login')
+        if session['expires_in'] <= 0:
+            return redirect('/refresh-token')
+
+        playlists = get_all_playlists(session['access_token'])
+        developer_token = generate_apple_dev_token()
+        return render_template('choose.html', playlists=playlists, developer_token=developer_token)
+
+    @app.route('/chosen-playlist', methods=['POST'])
+    def chosen_playlist():
+        """
+        Handles the playlist selection, fetches tracks and artists, and displays them.
+        """
+        if 'access_token' not in session:
+            return redirect('/login')
+
+        if session.get('expires_in') <= 0:
+            return redirect('/refresh-token')
+
+        token = session['access_token']
+        playlists = get_all_playlists(token)
+        playlist_name = request.form.get('playlist_name')
+
+        if not playlist_name:
             return redirect('/choose')
 
-        @self.app.route('/refresh-token')
-        def refresh_token():
-            """
-            Placeholder for refreshing the Spotify access token.
-            """
-            pass
+        playlist_id = search_spotify_playlist(playlists, playlist_name, token)
 
-        @self.app.route('/choose')
-        def choose():
-            # Displays a list of the user's playlists to choose from.
-            if 'access_token' not in session:
-                return redirect('/login')
-            if session['expires_in'] <= 0:
-                return redirect('/refresh-token')
+        if not playlist_id:
+            return "Playlist not found"
 
-            playlists = self.get_all_playlists(session['access_token'])
-            developer_token = generate_apple_dev_token()
-            return render_template('choose.html', playlists=playlists, developer_token=developer_token)
+        playlist = get_playlist(playlist_id, token)
 
-        @self.app.route('/chosen-playlist', methods=['POST'])
-        def chosen_playlist():
-            """
-            Handles the playlist selection, fetches tracks and artists, and displays them.
-            """
-            if 'access_token' not in session:
-                return redirect('/login')
+        if not playlist:
+            return "Error fetching playlist details"
 
-            if session.get('expires_in') <= 0:
-                return redirect('/refresh-token')
+        try:
+            session['apple_developer_token'] = generate_apple_dev_token()
+        except Exception as e:
+            return f"Error generating apple developer token: {str(e)}", 500
 
-            token = session['access_token']
-            playlists = self.get_all_playlists(token)
-            playlist_name = request.form.get('playlist_name')
-            
-            if not playlist_name:
-                return redirect('/choose')
-            
-            playlist_id = search_spotify_playlist(playlists, playlist_name, token)
-            
-            if not playlist_id:
-                return "Playlist not found"
-                
-            playlist = self.get_playlist(playlist_id, token)
-            
-            if not playlist:
-                return "Error fetching playlist details"
+        # Store the playlist info
+        session['selected_playlist'] = {
+            'name': playlist['name'],
+            'tracks_url': playlist['tracks']['href'],
+            'image_url': playlist['images'][0]['url'] if playlist['images'] else None
+        }
 
-            try:
-                session['apple_developer_token'] = generate_apple_dev_token()
-            except Exception as e:
-                return f"Error generating apple developer token: {str(e)}", 500
-            
-            # Store the playlist info 
-            session['selected_playlist'] = {
-                'name': playlist['name'],
-                'tracks_url': playlist['tracks']['href'],
-                'image_url': playlist['images'][0]['url'] if playlist['images'] else None
-            }
+        # Fetch tracks and artists
+        tracks_data = get_playlist_tracks(playlist_id, token)
+        tracks = []
+        for item in tracks_data:
+            track = item.get('track')
+            if track:
+                track_name = track.get('name')
+                artists = ', '.join([artist['name'] for artist in track.get('artists', [])])
+                album = track.get('album', {}).get('name', '')
+                tracks.append({
+                    'name': track_name,
+                    'artists': artists,
+                    'album': album
+                })
 
-            # Fetch tracks and artists
-            tracks_data = self.get_playlist_tracks(playlist_id, token)
-            tracks = []
-            for item in tracks_data:
-                track = item.get('track')
-                if track:
-                    track_name = track.get('name')
-                    artists = ', '.join([artist['name'] for artist in track.get('artists', [])])
-                    album = track.get('album', {}).get('name', '')
-                    tracks.append({
-                        'name': track_name,
-                        'artists': artists,
-                        'album': album
-                    })
+        session['tracks'] = tracks
 
-            session['tracks'] = tracks
+        return render_template('playlist_tracks.html', playlist=playlist, tracks=tracks, developer_token=session['apple_developer_token'])
 
-            return render_template('playlist_tracks.html', playlist=playlist, tracks=tracks, developer_token=session['apple_developer_token'])
+    @app.route('/apple-music-token', methods=['POST'])
+    def receive_apple_music_token():
+        data = request.get_json()
+        user_token = data.get('user_token')
+        developer_token = data.get('developer_token')
 
-        @self.app.route('/apple-music-token', methods=['POST'])
-        def receive_apple_music_token():
-            data = request.get_json()
-            user_token = data.get('user_token')
-            developer_token = data.get('developer_token')
+        if not user_token or not developer_token:
+            return jsonify({'error': 'Missing Apple Music Tokens'}), 400
 
-            if not user_token or not developer_token:
-                return jsonify({'error': 'Missing Apple Music Tokens'}), 400
+        session['apple_music_token'] = user_token
+        session['apple_developer_token'] = developer_token
 
-            session['apple_music_token'] = user_token
-            session['apple_developer_token'] = developer_token
+        return jsonify({'message': 'Tokens received successfully'}), 200
 
-            return jsonify({'message': 'Tokens received successfully'}), 200
+    @app.route('/convert')
+    def convert():
+        if 'access_token' not in session:
+            return redirect('/login')
 
-        @self.app.route('/convert')
-        def convert():
-            if 'access_token' not in session:
-                return redirect('/login')
+        dev_token = session.get('apple_developer_token')
+        user_token = session.get('apple_music_token')
 
-            dev_token = session.get('apple_developer_token')
-            user_token = session.get('apple_music_token')
+        if not user_token or not dev_token:
+            return jsonify(
+                {'error': 'Apple Music tokens are missing. Please authenticate with Apple Music again.'}), 400
 
-            if not user_token or not dev_token:
-                return jsonify(
-                    {'error': 'Apple Music tokens are missing. Please authenticate with Apple Music again.'}), 400
+        playlist_name = session['selected_playlist']['name']
+        playlist_response = create_apple_music_playlist(playlist_name, dev_token, user_token)
+        playlist_id = playlist_response['playlist_id']
+        if not playlist_id:
+            return jsonify({'error': 'Failed to create Apple Music playlist'}), 500
 
-            playlist_name = session['selected_playlist']['name']
-            playlist_response = create_apple_music_playlist(playlist_name, dev_token, user_token)
-            playlist_id = playlist_response['playlist_id']
-            if not playlist_id:
-                return jsonify({'error': 'Failed to create Apple Music playlist'}), 500
+        tracks = session['tracks']
 
-            tracks = session['tracks']
+        not_found_tracks = []
 
-            not_found_tracks = []
+        for track in tracks:
+            artist_name = track['artists']
+            track_name = track['name']
 
-            for track in tracks:
-                artist_name = track['artists']
-                track_name = track['name']
-
-                track_id = search_apple_music_track(artist_name, track_name, dev_token, user_token)
-                if not track_id:
-                    not_found_tracks.append(track)
+            track_id = search_apple_music_track(artist_name, track_name, dev_token, user_token)
+            if not track_id:
+                not_found_tracks.append(track)
+            else:
+                added_to_library = add_song_apple_music_library(track_id, dev_token, user_token)
+                if added_to_library:
+                    time.sleep(3)
+                    # library_song_id = get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token)
+                    result = add_song_apple_music_playlist(track_id, playlist_id, dev_token, user_token)
+                    print("Add result:", result)
                 else:
-                    added_to_library = add_song_apple_music_library(track_id, dev_token, user_token)
-                    if added_to_library:
-                        time.sleep(3)
-                        # library_song_id = get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token)
-                        result = add_song_apple_music_playlist(track_id, playlist_id, dev_token, user_token)
-                        print("Add result:", result)
-                    else:
-                        print("Failed to add track:", track)
+                    print("Failed to add track:", track)
 
-            return jsonify({'success': True, 'message': 'Playlist successfully converted and tracks added.', 'tracks not found': not_found_tracks}), 200
+        return jsonify({'success': True, 'message': 'Playlist successfully converted and tracks added.', 'tracks not found': not_found_tracks}), 200
 
 
 def create_app():
     app = Flask(__name__)
     app.secret_key = os.urandom(32)
-    spotify = Spotify(app)
     return app
 
 if __name__ == '__main__':
     app = create_app()
+    register_routes(app)
     webbrowser.open(REDIRECT_URI.strip('/callback'))
     app.run()
 
