@@ -32,6 +32,78 @@ def generate_state():
     letters = 'abcdefghijklmnopqrstuvwxyz'
     return ''.join(random.sample(letters, 16))
 
+# Generates an apple developer token
+def generate_apple_dev_token():
+    team_id = os.getenv('TEAM_ID')
+    key_id = os.getenv('KEY_ID')
+    private_key = os.getenv('PRIVATE_KEY')
+
+    headers = {
+        'alg': 'ES256',
+        'kid': key_id
+    }
+
+    payload = {
+        'iss': team_id,
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 86400,
+    }
+
+    return jwt.encode(payload, private_key, algorithm='ES256', headers=headers)
+
+'''
+    SPOTIFY HELPER METHODS
+'''
+# Gets all playlists
+def get_all_playlists(token):
+    """
+    Fetches all playlists from the user's Spotify library.
+    Args:
+        token (str): Spotify access token.
+    Returns:
+        list: List of playlist objects.
+    """
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(SPOTIFY_BASE_URL + 'me/playlists', headers=headers)
+    return response.json()['items']
+
+# Gets the playlist ID
+def get_playlist(playlist_id, token):
+    """
+    Fetches a specific playlist by its ID.
+    Args:
+        playlist_id (str): The Spotify playlist ID.
+        token (str): Spotify access token.
+    Returns:
+        dict or None: Playlist object if found, else None.
+    """
+    if not playlist_id:
+        return None
+
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(f'{SPOTIFY_BASE_URL}playlists/{playlist_id}', headers=headers)
+    return response.json()
+
+# Fetches all tracks from a playlist
+def get_playlist_tracks(playlist_id, token):
+    """
+    Fetches all tracks from a specific playlist by its ID.
+    Args:
+        playlist_id (str): The Spotify playlist ID.
+        token (str): Spotify access token.
+    Returns:
+        list: List of track objects in the playlist.
+    """
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    response = get(f'{SPOTIFY_BASE_URL}playlists/{playlist_id}/tracks', headers=headers)
+    return response.json()['items']
+
 # Searches for a playlist by name
 def search_spotify_playlist(playlists, name, token):
     """
@@ -48,6 +120,9 @@ def search_spotify_playlist(playlists, name, token):
             return playlist['id']
     return None
 
+'''
+    APPLE MUSIC HELPER FUNCTIONS
+'''
 # Creates a new playlist on apple music
 def create_apple_music_playlist(playlist_name, dev_token, user_token):
     url = 'https://api.music.apple.com/v1/me/library/playlists'
@@ -147,7 +222,6 @@ def get_apple_music_library_song_id(artist_name, track_name, dev_token, user_tok
 
     return None
 
-
 def add_song_apple_music_playlist(library_track_id, playlist_id, dev_token, user_token):
     url = f'https://api.music.apple.com/v1/me/library/playlists/{playlist_id}/tracks'
 
@@ -182,72 +256,9 @@ def add_song_apple_music_playlist(library_track_id, playlist_id, dev_token, user
             'details': response.text
         }
 
-# Generates an apple developer token
-def generate_apple_dev_token():
-    team_id = os.getenv('TEAM_ID')
-    key_id = os.getenv('KEY_ID')
-    private_key = os.getenv('PRIVATE_KEY')
-
-    headers = {
-        'alg': 'ES256',
-        'kid': key_id
-    }
-
-    payload = {
-        'iss': team_id,
-        'iat': int(time.time()),
-        'exp': int(time.time()) + 86400,
-    }
-
-    return jwt.encode(payload, private_key, algorithm='ES256', headers=headers)
-
-def get_all_playlists(token):
-    """
-    Fetches all playlists from the user's Spotify library.
-    Args:
-        token (str): Spotify access token.
-    Returns:
-        list: List of playlist objects.
-    """
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    response = get(SPOTIFY_BASE_URL + 'me/playlists', headers=headers)
-    return response.json()['items']
-
-def get_playlist(playlist_id, token):
-    """
-    Fetches a specific playlist by its ID.
-    Args:
-        playlist_id (str): The Spotify playlist ID.
-        token (str): Spotify access token.
-    Returns:
-        dict or None: Playlist object if found, else None.
-    """
-    if not playlist_id:
-        return None
-
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    response = get(f'{SPOTIFY_BASE_URL}playlists/{playlist_id}', headers=headers)
-    return response.json()
-    
-def get_playlist_tracks(playlist_id, token):
-    """
-    Fetches all tracks from a specific playlist by its ID.
-    Args:
-        playlist_id (str): The Spotify playlist ID.
-        token (str): Spotify access token.
-    Returns:
-        list: List of track objects in the playlist.
-    """
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    response = get(f'{SPOTIFY_BASE_URL}playlists/{playlist_id}/tracks', headers=headers)
-    return response.json()['items']
-
+'''
+    Flask routes
+'''
 def register_routes(app):
     #Registers all Flask routes/endpoints for the Spotify integration.
     @app.route('/')
@@ -255,7 +266,7 @@ def register_routes(app):
         """Renders the landing page."""
         return render_template('index.html')
 
-    @app.route('/login')
+    @app.route('/spotify-login')
     def login():
         # Redirects the user to Spotify's OAuth login page.
         state = generate_state()
@@ -443,8 +454,8 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    app = create_app()
-    register_routes(app)
+    tune_bridge = create_app()
+    register_routes(tune_bridge)
     webbrowser.open(REDIRECT_URI.strip('/callback'))
-    app.run()
+    tune_bridge.run()
 
