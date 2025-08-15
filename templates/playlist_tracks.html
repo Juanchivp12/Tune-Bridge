@@ -9,38 +9,121 @@
 </head>
 
 <body>
-    <main class="container">
-        <h1>Tracks in "{{ playlist.name }}"</h1>
+    <main class="container tracks-page">
+        <!-- Header Section -->
+        <div class="tracks-header">
+            <h1>Tracks in "{{ playlist.name }}"</h1>
+            
+            {% if playlist.images and playlist.images|length > 0 %}
+            <div class="playlist-cover">
+                <img src="{{ playlist.images[0].url }}" alt="{{ playlist.name }} cover" class="cover-image" />
+            </div>
+            {% endif %}
+        </div>
 
-        {% if playlist.image_url %}
-        <img src="{{ playlist.images[0].url }}" alt="Playlist cover"
-            style="max-width:200px; border-radius:12px; margin-bottom:1rem;" />
-        {% endif %}
+        <!-- Track Count -->
+        <div class="track-info">
+            <p class="track-count">{{ tracks|length }} tracks ready for conversion</p>
+        </div>
 
-        <table style="width:100%; margin-top:2rem; border-collapse:collapse;">
-            <thead>
-                <tr style="background:#222; color:#fff;">
-                    <th style="padding:10px; text-align:left;">Track</th>
-                    <th style="padding:10px; text-align:left;">Artist(s)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for track in tracks %}
-                <tr style="border-bottom:1px solid #444;">
-                    <td style="padding:10px;">{{ track.name }}</td>
-                    <td style="padding:10px;">{{ track.artists }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Tracks Table -->
+        <div class="tracks-container">
+            <table class="tracks-table">
+                <thead>
+                    <tr>
+                        <th class="track-number">#</th>
+                        <th class="track-name">Track</th>
+                        <th class="track-artist">Artist(s)</th>
+                        <th class="track-album">Album</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for track in tracks %}
+                    <tr class="track-row">
+                        <td class="track-number">{{ loop.index }}</td>
+                        <td class="track-name">{{ track.name }}</td>
+                        <td class="track-artist">{{ track.artists }}</td>
+                        <td class="track-album">{{ track.album or 'Unknown Album' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-        <!-- Convert to Apple Music Button -->
-        <form action="/convert" method="get" style="margin-top:2rem;">
-            <button type="submit" class="btn-primary">Convert to Apple Music</button>
-        </form>
+        <!-- Status Messages -->
+        <div id="status-message" class="status-message" style="display: none;"></div>
+        <div id="loading-spinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p>Converting your playlist...</p>
+        </div>
 
-        <a href="/choose" class="btn-primary" style="margin-top:2rem; display:inline-block;">Back to Playlists</a>
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button id="convert-btn" class="btn-primary convert-btn" onclick="startConversion()">
+                <span class="btn-text">Convert to Apple Music</span>
+                <span class="btn-icon">🎵</span>
+            </button>
+            
+            <a href="/choose" class="btn-secondary">← Back to Playlists</a>
+        </div>
     </main>
+
+    <script>
+        async function startConversion() {
+            const convertBtn = document.getElementById('convert-btn');
+            const statusMessage = document.getElementById('status-message');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            
+            // Show loading state
+            convertBtn.disabled = true;
+            convertBtn.innerHTML = '<span class="btn-text">Converting...</span>';
+            loadingSpinner.style.display = 'block';
+            statusMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch('/convert', {
+                    method: 'GET'
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading
+                loadingSpinner.style.display = 'none';
+                
+                if (response.ok && result.success) {
+                    statusMessage.className = 'status-message success';
+                    statusMessage.innerHTML = `
+                        <div class="success-icon">✅</div>
+                        <div>
+                            <h3>Conversion Successful!</h3>
+                            <p>${result.message}</p>
+                            ${result['tracks not found'] && result['tracks not found'].length > 0 ? 
+                                `<p class="warning">Note: ${result['tracks not found'].length} tracks could not be found on Apple Music</p>` : ''}
+                        </div>
+                    `;
+                    convertBtn.innerHTML = '<span class="btn-text">Converted!</span><span class="btn-icon">✅</span>';
+                } else {
+                    throw new Error(result.error || 'Conversion failed');
+                }
+            } catch (error) {
+                // Hide loading
+                loadingSpinner.style.display = 'none';
+                
+                statusMessage.className = 'status-message error';
+                statusMessage.innerHTML = `
+                    <div class="error-icon">❌</div>
+                    <div>
+                        <h3>Conversion Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                convertBtn.disabled = false;
+                convertBtn.innerHTML = '<span class="btn-text">Try Again</span><span class="btn-icon">🔄</span>';
+            }
+            
+            statusMessage.style.display = 'flex';
+        }
+    </script>
 </body>
 
 </html>
