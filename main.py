@@ -528,12 +528,19 @@ def create_app():
         Flask: Configured Flask application instance.
     """
     app = Flask(__name__)
-    app.secret_key = os.urandom(32)
+    app.secret_key = os.getenv('SECRET_KEY', os.urandom(32))
+    register_routes(app)
     return app
 
+# Create the app instance for deployment
+app = create_app()
+
 if __name__ == '__main__':
-    tune_bridge = create_app()
-    register_routes(tune_bridge)
-    webbrowser.open(REDIRECT_URI.strip('/callback'))
-    tune_bridge.run()
+    # Only open browser in local development
+    if os.getenv('ENVIRONMENT') != 'production':
+        webbrowser.open(REDIRECT_URI.strip('/callback'))
+    
+    # Get port from environment variable for deployment
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
 
