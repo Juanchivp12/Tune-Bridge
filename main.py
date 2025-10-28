@@ -32,8 +32,12 @@ def generate_state():
     letters = 'abcdefghijklmnopqrstuvwxyz'
     return ''.join(random.sample(letters, 16))
 
-# Generates an apple developer token
 def generate_apple_dev_token():
+    """
+    Generates a JSON Web Token for authenticating with Apple Music API.
+    Returns:
+        str: A JWT token valid for 24 hours.
+    """
     team_id = os.getenv('TEAM_ID')
     key_id = os.getenv('KEY_ID')
     private_key = os.getenv('PRIVATE_KEY')
@@ -121,10 +125,18 @@ def search_spotify_playlist(playlists, name, token):
     return None
 
 '''
-    APPLE MUSIC HELPER FUNCTIONS
+    APPLE MUSIC HELPER METHODS
 '''
-# Creates a new playlist on apple music
 def create_apple_music_playlist(playlist_name, dev_token, user_token):
+    """
+    Creates a new playlist in the user's Apple Music library.
+    Args:
+        playlist_name (str): Name for the new playlist.
+        dev_token (str): Apple Music developer token.
+        user_token (str): Apple Music user token.
+    Returns:
+        dict: Success status and playlist ID, or error details.
+    """
     url = 'https://api.music.apple.com/v1/me/library/playlists'
 
     headers = {
@@ -152,8 +164,17 @@ def create_apple_music_playlist(playlist_name, dev_token, user_token):
             'details': response.text
         }
 
-# Searches for a song in the Apple Music US catalog
 def search_apple_music_track(artist_name, track_name, dev_token, user_token):
+    """
+    Searches for a song in the Apple Music US catalog.
+    Args:
+        artist_name (str): Name of the artist.
+        track_name (str): Name of the track.
+        dev_token (str): Apple Music developer token.
+        user_token (str): Apple Music user token.
+    Returns:
+        str or None: Track ID if found, else None.
+    """
     url = "https://api.music.apple.com/v1/catalog/us/search"
 
     params = {
@@ -178,6 +199,15 @@ def search_apple_music_track(artist_name, track_name, dev_token, user_token):
         return None
 
 def add_song_apple_music_library(track_id, dev_token, user_token):
+    """
+    Adds a song to the user's Apple Music library.
+    Args:
+        track_id (str): The Apple Music track ID.
+        dev_token (str): Apple Music developer token.
+        user_token (str): Apple Music user token.
+    Returns:
+        bool: True if successful, False otherwise.
+    """
     url = 'https://api.music.apple.com/v1/me/library'
 
     headers = {
@@ -195,6 +225,16 @@ def add_song_apple_music_library(track_id, dev_token, user_token):
     return response.status_code == 202 or response.status_code == 204
 
 def get_apple_music_library_song_id(artist_name, track_name, dev_token, user_token):
+    """
+    Searches for a song in the user's Apple Music library and returns its library ID.
+    Args:
+        artist_name (str): Name of the artist.
+        track_name (str): Name of the track.
+        dev_token (str): Apple Music developer token.
+        user_token (str): Apple Music user token.
+    Returns:
+        str or None: Library song ID if found, else None.
+    """
     url = 'https://api.music.apple.com/v1/me/library/search'
     headers = {
         'Authorization': f'Bearer {dev_token}',
@@ -223,6 +263,16 @@ def get_apple_music_library_song_id(artist_name, track_name, dev_token, user_tok
     return None
 
 def add_song_apple_music_playlist(library_track_id, playlist_id, dev_token, user_token):
+    """
+    Adds a song from the user's library to a specific playlist.
+    Args:
+        library_track_id (str): The library track ID.
+        playlist_id (str): The playlist ID to add the song to.
+        dev_token (str): Apple Music developer token.
+        user_token (str): Apple Music user token.
+    Returns:
+        dict: Success status and message, or error details.
+    """
     url = f'https://api.music.apple.com/v1/me/library/playlists/{playlist_id}/tracks'
 
     if not library_track_id:
@@ -260,7 +310,11 @@ def add_song_apple_music_playlist(library_track_id, playlist_id, dev_token, user
     Flask routes
 '''
 def register_routes(app):
-    #Registers all Flask routes/endpoints for the Spotify integration.
+    """
+    Registers all Flask routes/endpoints for the Spotify to Apple Music integration.
+    Args:
+        app (Flask): The Flask application instance.
+    """
     @app.route('/')
     def index():
         """Renders the landing page."""
@@ -268,7 +322,11 @@ def register_routes(app):
 
     @app.route('/spotify-login')
     def login():
-        # Redirects the user to Spotify's OAuth login page.
+        """
+        Redirects the user to Spotify's OAuth login page.
+        Returns:
+            redirect: Redirect to Spotify authorization URL.
+        """
         state = generate_state()
         scope = 'user-library-read playlist-read-private playlist-modify-private playlist-modify-public'
         params = {
@@ -323,7 +381,11 @@ def register_routes(app):
 
     @app.route('/choose')
     def choose():
-        # Displays a list of the user's playlists to choose from.
+        """
+        Displays a list of the user's playlists to choose from.
+        Returns:
+            render_template: The playlist selection page.
+        """
         if 'access_token' not in session:
             return redirect('/login')
         if session['expires_in'] <= 0:
@@ -394,6 +456,11 @@ def register_routes(app):
 
     @app.route('/apple-music-token', methods=['POST'])
     def receive_apple_music_token():
+        """
+        Receives and stores Apple Music user and developer tokens.
+        Returns:
+            jsonify: Success or error response.
+        """
         data = request.get_json()
         user_token = data.get('user_token')
         developer_token = data.get('developer_token')
@@ -408,6 +475,12 @@ def register_routes(app):
 
     @app.route('/convert')
     def convert():
+        """
+        Converts the selected Spotify playlist to Apple Music by creating a new playlist
+        and adding all found tracks to it.
+        Returns:
+            jsonify: Success status with conversion results.
+        """
         if 'access_token' not in session:
             return redirect('/login')
 
@@ -449,6 +522,11 @@ def register_routes(app):
 
 
 def create_app():
+    """
+    Creates and configures the Flask application.
+    Returns:
+        Flask: Configured Flask application instance.
+    """
     app = Flask(__name__)
     app.secret_key = os.urandom(32)
     return app
