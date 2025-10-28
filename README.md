@@ -54,12 +54,20 @@ python main.py
 
 The application will automatically open in your default web browser at `http://127.0.0.1:5000`.
 
+## Live Demo
+
+🚀 **Try the live version**: [https://tune-bridge.onrender.com](https://tune-bridge.onrender.com)
+
+*Note: The app may take 30 seconds to wake up if it hasn't been used recently (free tier limitation).*
+
 ## Getting API Credentials
 
 ### Spotify API Setup
 1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new application
-3. Set the redirect URI to `http://127.0.0.1:5000/callback`
+3. Set the redirect URIs to:
+   - `http://127.0.0.1:5000/callback` (for local development)
+   - `https://tune-bridge.onrender.com/callback` (for live deployment)
 4. Copy your Client ID and Client Secret to your `.env` file
 
 ### Apple Music API Setup
