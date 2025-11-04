@@ -178,3 +178,5 @@ cython_debug/
 
 # js script
 AppleMusicAuth.js
+
+musickittest.py
